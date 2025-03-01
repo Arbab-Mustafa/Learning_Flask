@@ -1,4 +1,4 @@
-import graphene
+import graphene 
 
 class UserType(graphene.ObjectType):
     username = graphene.String()

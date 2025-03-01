@@ -17,8 +17,6 @@ class Query(ObjectType):
         users = get_all_users()
         return [UserType(username=user["username"], email=user["email"]) for user in users]  # ✅ Fix mapping
 
-
-
 class CreateUser(Mutation):
     class Arguments:
         username = String(required=True)

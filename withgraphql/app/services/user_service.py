@@ -1,7 +1,6 @@
 from app.config.db import db
 
 users_collection = db["users"]
-
 # Get user by username
 def get_user_by_username(username):
     user = users_collection.find_one({"username": username})
@@ -22,9 +21,7 @@ def delete_user(username):
     result = users_collection.delete_one({"username": username})
     return result.deleted_count > 0  # True if user was deleted, False otherwise
 
-
 # Get all users
 def  get_all_users():
     users = list(users_collection.find({}, {"_id": 0, "username": 1, "email": 1}))  
-    print("Fetched users:", users)  # 🔍 Debugging line to see if data is retrieved
     return users
