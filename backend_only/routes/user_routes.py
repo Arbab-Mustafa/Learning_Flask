@@ -3,7 +3,7 @@ from model.user_model import serialize_user
 from datetime import datetime
 from config import mongo  # ✅ Import mongo properly
 from bson import ObjectId
-from werkzeug.security import generate_password_hash
+from werkzeug.security import generate_password_hash , check_password_hash
 import re
 
 user_bp = Blueprint("user_bp", __name__)
@@ -59,9 +59,6 @@ def create_user():
     except Exception as e:
         return jsonify({"error": "Internal Server Error", "details": str(e)}), 500
 
-
-
-
 @user_bp.route("/user/<id>", methods=["GET"])
 def get_user(id):
     try:
@@ -113,3 +110,26 @@ def update_user(id):
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+
+
+@user_bp.route("/login", methods=["POST"])
+def login_user():
+    try:
+        data = request.get_json()
+        if not data or not all(k in data for k in ["email", "password"]):
+            return jsonify({"error": "Email and password are required"}), 400
+
+        email = data["email"].strip().lower()
+        password = data["password"]
+
+        user = mongo.db.users.find_one({"email": email})
+
+        if user:
+            if check_password_hash(user["password"], password):
+                return jsonify({"message": "Login successful", "user": serialize_user(user)})
+
+
+        # make token / session / cookie  which is best for user login
+        return jsonify({"error": "Invalid email or password"}), 401
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
