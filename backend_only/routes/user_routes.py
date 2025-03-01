@@ -3,8 +3,11 @@ from model.user_model import serialize_user
 from datetime import datetime
 from config import mongo  # ✅ Import mongo properly
 from bson import ObjectId
+from werkzeug.security import generate_password_hash
+import re
 
 user_bp = Blueprint("user_bp", __name__)
+
 
 # GET all users
 @user_bp.route("/users", methods=["GET"])   
@@ -17,26 +20,47 @@ def get_users():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+
 @user_bp.route("/user", methods=["POST"])
 def create_user():
     try:
         data = request.get_json()
 
-        if not data or "name" not in data or "email" not in data or "password" not in data:
-            return jsonify({"error": "Missing required fields"}), 400
+        # Validate required fields
+        if not data or not all(k in data for k in ["name", "email", "password"]):
+            return jsonify({"error": "Name, email, and password are required"}), 400
 
-        user = {
-            "name": data["name"],
-            "email": data["email"],
-            "password": data["password"],  # ❗ Hash this in production
-            "created_at": datetime.now(),
+        name = data["name"].strip()
+        email = data["email"].strip().lower()
+        password = data["password"]
 
-        }
+         
 
-        inserted_id = mongo.db.users.insert_one(user).inserted_id  # ✅ Correct usage
-        return jsonify({"message": "User created successfully", "id": str(inserted_id)}), 201
+        # Validate password strength
+        if len(password) < 6:
+            return jsonify({"error": "Password must be at least 6 characters long"}), 400
+
+        # Check if user already exists
+        if mongo.db.users.find_one({"email": email}):
+            return jsonify({"error": "User with this email already exists"}), 409
+
+        # Hash password
+        hashed_password = generate_password_hash(password)
+
+        # Save user to DB
+        new_user = {"name": name, "email": email, "password": hashed_password}
+        inserted_user = mongo.db.users.insert_one(new_user)
+
+        # Return success response (exclude password)
+        new_user["_id"] = str(inserted_user.inserted_id)
+        
+
+        return jsonify({"message": "User created successfully", "user": new_user}), 201
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": "Internal Server Error", "details": str(e)}), 500
+
+
+
 
 @user_bp.route("/user/<id>", methods=["GET"])
 def get_user(id):
