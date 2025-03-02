@@ -25,3 +25,6 @@ def delete_user(username):
 def  get_all_users():
     users = list(users_collection.find({}, {"_id": 0, "username": 1, "email": 1}))  
     return users
+
+
+
